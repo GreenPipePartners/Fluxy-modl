@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "fluxy-java"
+rootProject.name = "fluxy-modl"
 
 val ignitionTarget = providers.gradleProperty("ignitionTarget").orElse("8.3").get()
 if (ignitionTarget.startsWith("8.1")) {

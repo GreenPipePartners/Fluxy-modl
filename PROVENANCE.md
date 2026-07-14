@@ -44,7 +44,7 @@ Executed document SHA-256:
 71d4df2038b6888b1dfcc16b5cb9ef1c98028e7fd11e3fbbc69a2cae133b2052
 ```
 
-Exhibit A identifies the historical repository as `https://github.com/Bobby-Miller/Fluxy`; that repository is currently controlled at `https://github.com/GreenPipePartners/Fluxy`. The Java module corresponding source is now maintained at `https://github.com/Bobby-Miller/fluxy-java`. The agreement expressly includes work maintained elsewhere and the Assignor confirmed this is the correct executed document.
+Exhibit A identifies the historical repository as `https://github.com/Bobby-Miller/Fluxy`; that repository is currently controlled at `https://github.com/GreenPipePartners/Fluxy`. The Java module corresponding source is now maintained at `https://github.com/GreenPipePartners/Fluxy-modl`. The agreement expressly includes work maintained elsewhere and the Assignor confirmed this is the correct executed document.
 
 ## Continuing Work
 

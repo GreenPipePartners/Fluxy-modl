@@ -94,7 +94,7 @@ def verify(args: argparse.Namespace) -> str:
             "License mode: free",
             f"Source commit: {args.source_commit}",
             f"Source tag: {args.source_tag}",
-            f"Source tree: https://github.com/Bobby-Miller/fluxy-java/tree/{args.source_commit}",
+            f"Source tree: https://github.com/GreenPipePartners/Fluxy-modl/tree/{args.source_commit}",
         }
         for line in required_source_lines:
             if line not in source:

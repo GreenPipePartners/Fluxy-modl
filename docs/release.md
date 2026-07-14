@@ -33,8 +33,8 @@ v0.1.3.20260712
 The artifact embeds immutable links to:
 
 ```text
-https://github.com/Bobby-Miller/fluxy-java/tree/<commit>
-https://github.com/Bobby-Miller/fluxy-java/archive/<commit>.tar.gz
+https://github.com/GreenPipePartners/Fluxy-modl/tree/<commit>
+https://github.com/GreenPipePartners/Fluxy-modl/archive/<commit>.tar.gz
 ```
 
 Keep tagged corresponding source available for every distributed binary.
