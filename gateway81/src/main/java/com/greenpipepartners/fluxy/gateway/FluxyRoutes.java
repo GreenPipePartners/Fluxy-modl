@@ -40,7 +40,7 @@ import org.python.core.PyObject;
 import org.python.core.PyStringMap;
 
 final class FluxyRoutes {
-    private static final String MODULE_VERSION = "0.1.4 (b20260714, Ignition 8.1)";
+    private static final String MODULE_VERSION = "0.1.5 (b20260714, Ignition 8.1)";
     private static final String NATIVE_HISTORY_OPERATION = "historian/queryRawPointsStream";
     private static final String PROJECT_SCAN_OPERATION = "project/requestScan";
     private static final int MAX_BODY_CHARS = 1_048_576;

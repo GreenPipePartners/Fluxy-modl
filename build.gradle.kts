@@ -8,7 +8,7 @@ plugins {
     id("io.ia.sdk.modl") version("0.1.1")
 }
 
-val releaseVersion = "0.1.4"
+val releaseVersion = "0.1.5"
 val buildNumber = "20260714"
 val moduleVersionValue = "$releaseVersion.$buildNumber"
 val repositoryUrl = "https://github.com/GreenPipePartners/Fluxy-modl"
