@@ -14,7 +14,11 @@ This repository is the corresponding source for published Fluxy `.modl` artifact
 | `Fluxy-Ignition81-Free` | 8.1.50 | 17 |
 | `Fluxy-Ignition83-Free` | 8.3.4 | 17 |
 
-Separate binaries are required because Ignition 8.3 changed servlet and data-route APIs. Both artifacts use module ID `com.greenpipepartners.fluxy`, expose the same HTTP contract, set `freeModule=true`, and do not require an Ignition module entitlement.
+Separate binaries are required because Ignition 8.3 changed servlet and data-route APIs. Both artifacts use IA-registered module ID `partners.greenpipe.fluxy`, expose the same HTTP contract, set `freeModule=true`, and do not require an Ignition module entitlement.
+
+## Module ID Migration
+
+Public beta `0.1.3.20260714` used the pre-onboarding ID `com.greenpipepartners.fluxy`. Inductive Automation subsequently assigned Green Pipe Partners the prefix `partners.greenpipe`. Uninstall the old-ID beta before installing `0.1.4.20260714`; Ignition treats them as separate modules and they must not run together. Routes, API credentials, and Python client configuration are unchanged.
 
 ## Security Model
 
@@ -57,13 +61,13 @@ Public release candidates require a clean, pushed, immutable tag and embed the e
   -PlicenseMode=free \
   -PpublicRelease=true \
   -PsourceCommit=<40-character-commit> \
-  -PsourceTag=v0.1.3.20260714 \
+  -PsourceTag=v0.1.4.20260714 \
   clean test packageReleaseCandidate
 ```
 
 `packageReleaseCandidate` deliberately produces an unsigned candidate. Public `.modl` assets must be signed with Inductive Automation's module-signing tool before publication. Never commit signing keys, keystores, certificate chains, or passwords.
 
-The current pre-vendor free release omits `vendorId` from `module.xml`. That field is not required for module loading and is distinct from the globally unique module ID. A nonzero IA-assigned vendor ID remains mandatory for future Module Showcase or IA-integrated commercial release builds.
+Inductive Automation identifies Green Pipe as the module author through the assigned `partners.greenpipe` module prefix. IA does not assign or require a separate numeric `vendorId` in `module.xml`. Commercial licensing remains separately gated on implementing and testing IA's licensing API.
 
 See [docs/release.md](docs/release.md) for the complete release procedure.
 

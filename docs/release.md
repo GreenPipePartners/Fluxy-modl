@@ -5,8 +5,8 @@
 
 Fluxy Java has two release tracks:
 
-- **Public free release:** independently hosted, MPL-2.0, `freeModule=true`, no IA licensing service, and no IA vendor ID required by this build.
-- **IA-integrated release:** future Module Showcase or commercial integration requiring the IA-assigned vendor ID and any applicable IA review/licensing setup.
+- **Public free release:** independently hosted, MPL-2.0, `freeModule=true`, and no IA licensing service.
+- **IA-integrated release:** future Module Showcase or commercial integration using IA's assigned module prefix and any applicable review/licensing setup.
 
 Neither track may imply Inductive Automation certification, approval, support, or endorsement without express authorization.
 
@@ -20,14 +20,14 @@ Neither track may imply Inductive Automation certification, approval, support, o
 - Completed Java compatibility matrix and artifact audit.
 - Working private security-reporting channel.
 
-An IA vendor ID is not required for the independently hosted free release. When the configured vendor ID is zero, the build omits `<vendorId>` rather than publishing a placeholder. `officialRelease` remains blocked until IA assigns a nonzero value.
+IA assigned Green Pipe Partners the module prefix `partners.greenpipe`; every release must use module ID `partners.greenpipe.fluxy`. IA's module descriptor and Gradle plugin do not use a separate numeric vendor ID. Licensed IA-integrated builds remain blocked while `iaLicensingReady` is false.
 
 ## Source Identity
 
-The release tag for version `0.1.3.20260714` is:
+The release tag for version `0.1.4.20260714` is:
 
 ```text
-v0.1.3.20260714
+v0.1.4.20260714
 ```
 
 The artifact embeds immutable links to:
@@ -58,7 +58,7 @@ After review, commit and push `main`, then create and push the exact version tag
 
 ```bash
 COMMIT=$(git rev-parse HEAD)
-TAG=v0.1.3.20260714
+TAG=v0.1.4.20260714
 
 ./gradlew \
   -PignitionTarget=8.1 \
@@ -83,13 +83,13 @@ The task refuses dirty, untagged, unpushed, incorrectly licensed, or source-mism
 
 ```bash
 python3 scripts/verify_release_artifact.py \
-  release/Fluxy-Ignition81-Free-0.1.3.20260714.unsigned.modl \
+  release/Fluxy-Ignition81-Free-0.1.4.20260714.unsigned.modl \
   --ignition-version 8.1.50 \
   --source-commit "$COMMIT" \
   --source-tag "$TAG"
 
 python3 scripts/verify_release_artifact.py \
-  release/Fluxy-Ignition83-Free-0.1.3.20260714.unsigned.modl \
+  release/Fluxy-Ignition83-Free-0.1.4.20260714.unsigned.modl \
   --ignition-version 8.3.4 \
   --source-commit "$COMMIT" \
   --source-tag "$TAG"
@@ -106,8 +106,8 @@ java -jar /secure/module-signer.jar \
   -alias=<signing-alias> \
   -alias-pwd=<provided-securely> \
   -chain=/secure/fluxy-signing-chain.p7b \
-  -module-in=release/Fluxy-Ignition83-Free-0.1.3.20260714.unsigned.modl \
-  -module-out=release/Fluxy-Ignition83-Free-0.1.3.20260714.modl
+  -module-in=release/Fluxy-Ignition83-Free-0.1.4.20260714.unsigned.modl \
+  -module-out=release/Fluxy-Ignition83-Free-0.1.4.20260714.modl
 ```
 
 Repeat for 8.1. Do not put literal passwords in shell history, CI logs, Gradle properties, or the repository. A self-signed certificate is supported for an independently hosted free beta; a CA-issued code-signing certificate provides stronger assurance for public users.
@@ -116,7 +116,8 @@ Repeat for 8.1. Do not put literal passwords in shell history, CI logs, Gradle p
 
 - Install both signed artifacts on Gateways where unsigned modules are disabled.
 - Confirm certificate identity/fingerprint and the installation trust prompt.
-- Confirm `Fluxy Free`, `freeModule=true`, module ID, minimum Ignition version, and vendor display.
+- Confirm `Fluxy Free`, `freeModule=true`, module ID `partners.greenpipe.fluxy`, minimum Ignition version, and vendor display.
+- Confirm a pre-onboarding `com.greenpipepartners.fluxy` beta is uninstalled before installing the corrected module ID.
 - Run authenticated project scan, tag read/write/configure/delete, audit, and historian closed-loop tests.
 - Exercise upgrade and uninstall behavior.
 - Verify the archives contain only Fluxy code and compliance files, with no IA SDK/runtime JARs.
@@ -125,7 +126,7 @@ Repeat for 8.1. Do not put literal passwords in shell history, CI logs, Gradle p
 
 ## Publish
 
-Publish one immutable GitHub release containing:
+Publish one immutable website or GitHub release containing:
 
 - Signed 8.1 and 8.3 `.modl` files.
 - SHA-256 sidecars for the signed files.

@@ -3,17 +3,17 @@
 
 # Inductive Automation Onboarding
 
-Status: pending Inductive Automation.
+Status: developer account approved; Module Showcase submission and commercial licensing integration pending.
 
 ## Registration
 
-- Request a Module Showcase Developer Account for Green Pipe Partners, LLC.
-- Register module ID `com.greenpipepartners.fluxy`.
-- Obtain and commit the assigned `vendorId` in `build.gradle.kts` for IA-integrated releases.
+- Module Showcase Developer Account approved for Green Pipe Partners, LLC.
+- IA-assigned module prefix: `partners.greenpipe`.
+- Fluxy module ID: `partners.greenpipe.fluxy`.
 - Confirm the exact vendor name IA expects and align it with the code-signing certificate leaf `CN=Green Pipe Partners, LLC`.
-- Obtain access to IA's third-party module licensing system.
+- Module Showcase/API portal access received.
 
-The independently hosted public free release does not use IA licensing and omits the `vendorId` element while onboarding is pending. It must not be represented as a Module Showcase, IA-approved, or IA-licensed release.
+IA's author identity is the assigned module-ID prefix, not a separate numeric vendor ID. The independently hosted public free release does not use IA licensing. It must not be represented as a Module Showcase or IA-approved release until the submission process is complete.
 
 ## Licensing Design
 

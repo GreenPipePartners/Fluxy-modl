@@ -70,7 +70,7 @@ def verify(args: argparse.Namespace) -> str:
         module = ET.fromstring(archive.read("module.xml")).find("module")
         if module is None:
             fail("module.xml does not contain a module element")
-        if text(module, "id") != "com.greenpipepartners.fluxy":
+        if text(module, "id") != "partners.greenpipe.fluxy":
             fail("unexpected module ID")
         if text(module, "name") != "Fluxy Free":
             fail("release is not identified as Fluxy Free")
@@ -80,9 +80,8 @@ def verify(args: argparse.Namespace) -> str:
             fail("required Ignition version does not match the release target")
         if text(module, "freeModule").lower() != "true":
             fail("release must declare freeModule=true")
-        vendor_id = module.findtext("vendorId")
-        if vendor_id is not None and int(vendor_id) <= 0:
-            fail("vendorId must be omitted until IA assigns a positive value")
+        if module.find("vendorId") is not None:
+            fail("module.xml contains unsupported vendorId metadata")
         description = text(module, "description").lower()
         if "private" in description or "unlicensed" in description:
             fail("release description contains development-only wording")

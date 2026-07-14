@@ -8,15 +8,15 @@ plugins {
     id("io.ia.sdk.modl") version("0.1.1")
 }
 
-val releaseVersion = "0.1.3"
+val releaseVersion = "0.1.4"
 val buildNumber = "20260714"
 val moduleVersionValue = "$releaseVersion.$buildNumber"
 val repositoryUrl = "https://github.com/GreenPipePartners/Fluxy-modl"
+val iaModulePrefix = "partners.greenpipe"
+val moduleId = "$iaModulePrefix.fluxy"
 val publicRelease = providers.gradleProperty("publicRelease").map(String::toBoolean).orElse(false)
 val officialRelease = providers.gradleProperty("officialRelease").map(String::toBoolean).orElse(false)
 val releaseBuild = publicRelease.get() || officialRelease.get()
-// Replace only after IA assigns Green Pipe's permanent vendor ID.
-val iaVendorId = 0
 // Replace only after IA provisions and documents version entitlement parameters.
 val iaLicensingReady = false
 val sourceCommit = providers.gradleProperty("sourceCommit").orElse("UNRELEASED")
@@ -46,7 +46,10 @@ require(!(publicRelease.get() && officialRelease.get())) {
     "Choose either publicRelease or officialRelease, not both"
 }
 require(!publicRelease.get() || freeVariant.get()) {
-    "Pre-vendor public releases must use -PlicenseMode=free"
+    "Public releases must use -PlicenseMode=free"
+}
+require(moduleId.startsWith("$iaModulePrefix.")) {
+    "Module ID must use IA-assigned prefix $iaModulePrefix"
 }
 
 extra["fluxyModuleVersion"] = moduleVersionValue
@@ -59,7 +62,7 @@ extra["fluxyTargetIgnitionVersion"] = targetIgnitionVersion
 extra["fluxyLicenseMode"] = licenseMode.get()
 
 allprojects {
-    group = "com.greenpipepartners.fluxy"
+    group = moduleId
     version = releaseVersion
 }
 
@@ -144,7 +147,7 @@ val generateCompliance by tasks.registering {
             |  "metadata": {
             |    "component": {
             |      "type": "application",
-            |      "group": "com.greenpipepartners.fluxy",
+            |      "group": "$moduleId",
             |      "name": "fluxy-ignition-module",
             |      "version": "$moduleVersionValue",
             |      "licenses": [{"license": {"id": "MPL-2.0"}}],
@@ -167,7 +170,7 @@ val generateCompliance by tasks.registering {
 ignitionModule {
     fileName.set(moduleFileName)
     name.set(moduleDisplayName)
-    id.set("com.greenpipepartners.fluxy")
+    id.set(moduleId)
     moduleVersion.set(moduleVersionValue)
     moduleDescription.set(
         if (freeVariant.get()) {
@@ -233,12 +236,9 @@ val verifyReleaseInputs by tasks.registering {
             "Release packaging requires -PpublicRelease=true or -PofficialRelease=true"
         }
         if (publicRelease.get()) {
-            require(freeVariant.get()) { "Public pre-vendor releases must be free modules" }
+            require(freeVariant.get()) { "Public releases must be free modules" }
         }
         if (officialRelease.get()) {
-            require(iaVendorId > 0) {
-                "IA-integrated releases require the committed IA-assigned vendorId"
-            }
             require(freeVariant.get() || iaLicensingReady) {
                 "Licensed IA-integrated releases require completed IA licensing integration"
             }
@@ -314,10 +314,9 @@ tasks.named("writeModuleXml") {
     doLast {
         val moduleXml = layout.buildDirectory.file("moduleContent/module.xml").get().asFile
         val marker = "\t\t<requiredIgnitionVersion>"
-        val vendorIdXml = if (iaVendorId > 0) "\t\t<vendorId>$iaVendorId</vendorId>\n" else ""
         val vendorXml = """
-            |$vendorIdXml		<vendorName>Green Pipe Partners, LLC</vendorName>
-            |		<vendorContactInfo>https://greenpipepartners.com/</vendorContactInfo>
+            |		<vendorName>Green Pipe Partners, LLC</vendorName>
+            |		<vendorContactInfo>https://greenpipe.partners/</vendorContactInfo>
             |
         """.trimMargin()
         val content = moduleXml.readText()

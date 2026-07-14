@@ -20,5 +20,6 @@
 - Never publish an unsigned `.modl` or enable unsigned modules on a production Gateway.
 - Never commit keystores, private keys, certificate chains, passwords, API keys, or customer data.
 - Public release artifacts must identify an exact pushed source commit and immutable tag.
-- Pre-vendor public builds must use `licenseMode=free` and omit `vendorId`; never publish `vendorId=0`.
+- Module ID must begin with IA's assigned prefix: `partners.greenpipe`.
+- Public builds must use `licenseMode=free`; IA's module identity uses the full module ID, not a numeric vendor ID.
 - Do not imply Inductive Automation certification, approval, endorsement, or support.

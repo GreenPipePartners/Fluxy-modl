@@ -29,8 +29,8 @@ JAVA_HOME=/path/to/jdk17 ./gradlew -PignitionTarget=8.3 clean test packageDevelo
 
 The development artifacts are:
 
-- `release/Fluxy-Ignition81-Free-0.1.3.20260714-dev.unsigned.modl`
-- `release/Fluxy-Ignition83-Free-0.1.3.20260714-dev.unsigned.modl`
+- `release/Fluxy-Ignition81-Free-0.1.4.20260714-dev.unsigned.modl`
+- `release/Fluxy-Ignition83-Free-0.1.4.20260714-dev.unsigned.modl`
 
 Each development artifact is unsigned and explicitly marked not for distribution. Install only the artifact matching the Gateway major version. Both identify as `Fluxy Free`, set `<freeModule>true</freeModule>`, and require no module entitlement. Free changes licensing, not API security; every route remains authenticated.
 
@@ -49,7 +49,9 @@ Unsigned development builds declare `Green Pipe Partners, LLC` through the modul
 
 The public module is free and open source under MPL-2.0. It returns `true` from `isFreeModule()` and does not depend on the Gateway trial or Inductive Automation's third-party module licensing service.
 
-The pre-vendor descriptor omits `vendorId`; it never publishes the development placeholder `0`. The stable module ID is `com.greenpipepartners.fluxy`. A future IA Module Showcase or commercial integration remains separately gated on IA assigning a vendor ID and approving the applicable services.
+IA assigned Green Pipe Partners the module prefix `partners.greenpipe`; the stable module ID is `partners.greenpipe.fluxy`. IA's current descriptor and Gradle plugin do not use a separate numeric vendor ID. A future commercial release remains separately gated on implementing and testing IA's licensing API.
+
+Version `0.1.3.20260714` used the pre-onboarding ID `com.greenpipepartners.fluxy`. Uninstall that beta before installing `0.1.4.20260714`. Ignition treats different module IDs as separate modules, while Fluxy's route paths and client configuration remain unchanged.
 
 Neither the source nor a Green Pipe-signed binary should be represented as IA-certified, approved, supported, or endorsed.
 
@@ -234,6 +236,6 @@ uv run pytest tests/test_integration_module.py
 
 The WebDev transport remains available for existing deployments. The native artifacts default to 8.1.50 and 8.3.4 respectively because the major versions have incompatible servlet and route-authorization APIs. CI additionally compiles and tests against 8.1.51 and 8.3.6.
 
-Current module release: `0.1.3 (b20260714)`, vendor `Green Pipe Partners, LLC`.
+Current module release: `0.1.4 (b20260714)`, module ID `partners.greenpipe.fluxy`, vendor `Green Pipe Partners, LLC`.
 
 The module source is MPL-2.0. See `../LICENSE`, `../NOTICE`, `../PROVENANCE.md`, and `release.md` for source, ownership, and official-release requirements.
