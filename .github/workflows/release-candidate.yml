@@ -1,0 +1,49 @@
+name: Verify Tagged Release Source
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ignition-target: "8.1"
+            ignition-version: "8.1.50"
+            artifact-prefix: "Fluxy-Ignition81-Free"
+          - ignition-target: "8.3"
+            ignition-version: "8.3.4"
+            artifact-prefix: "Fluxy-Ignition83-Free"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Build public release candidate
+        run: >-
+          ./gradlew
+          -PignitionTarget=${{ matrix.ignition-target }}
+          -PlicenseMode=free
+          -PpublicRelease=true
+          -PsourceCommit=${{ github.sha }}
+          -PsourceTag=${{ github.ref_name }}
+          clean test packageReleaseCandidate
+      - name: Verify public release candidate
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python3 scripts/verify_release_artifact.py \
+            "release/${{ matrix.artifact-prefix }}-${VERSION}.unsigned.modl" \
+            --ignition-version "${{ matrix.ignition-version }}" \
+            --source-commit "${{ github.sha }}" \
+            --source-tag "${{ github.ref_name }}"

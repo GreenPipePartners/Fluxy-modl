@@ -1,0 +1,40 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  module:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ignition-target: ["8.1.50", "8.1.51", "8.3.4", "8.3.6"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - name: Test free module
+        run: >-
+          ./gradlew
+          -PignitionTarget=${{ matrix.ignition-target }}
+          -PlicenseMode=free
+          clean test packageDevelopment
+
+  repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile release verifier
+        run: python3 -m py_compile scripts/verify_release_artifact.py
+      - name: Reject committed build products and credentials
+        run: |
+          test -z "$(git ls-files '*.modl' '*.jks' '*.p12' '*.pfx' '*.pem' '*.key' '*.p7b')"
