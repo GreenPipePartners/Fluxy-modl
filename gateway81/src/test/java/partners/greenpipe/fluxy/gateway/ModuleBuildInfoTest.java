@@ -13,5 +13,9 @@ class ModuleBuildInfoTest {
     void readsTheGeneratedLicenseMode() {
         boolean expected = "free".equals(System.getProperty("fluxy.test.expectedLicenseMode"));
         assertEquals(expected, ModuleBuildInfo.isFreeModule());
+        assertEquals(
+            System.getProperty("fluxy.test.expectedModuleVersion"),
+            ModuleBuildInfo.moduleVersion()
+        );
     }
 }

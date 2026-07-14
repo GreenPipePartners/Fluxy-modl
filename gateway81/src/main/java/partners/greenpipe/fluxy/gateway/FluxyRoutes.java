@@ -40,29 +40,16 @@ import org.python.core.PyObject;
 import org.python.core.PyStringMap;
 
 final class FluxyRoutes {
-    private static final String MODULE_VERSION = "0.1.6 (b20260714, Ignition 8.1)";
+    private static final String IGNITION_FAMILY = FluxyRouteManifest.IGNITION_81;
+    private static final FluxyRouteManifest ROUTE_MANIFEST = FluxyRouteManifest.instance();
+    private static final String MODULE_VERSION = ModuleBuildInfo.moduleVersion();
     private static final String NATIVE_HISTORY_OPERATION = "historian/queryRawPointsStream";
     private static final String PROJECT_SCAN_OPERATION = "project/requestScan";
     private static final int MAX_BODY_CHARS = 1_048_576;
+    private static final int MAX_RESPONSE_CHARS = 4_194_304;
     private static final int MAX_TARGETS = 20;
     private static final int MAX_TARGET_LENGTH = 256;
     private static final Pattern TRACE_ID_PATTERN = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
-    private static final Set<String> READ_ROUTES = Set.of(
-        "/util/getVersion",
-        "/util/queryAuditLog",
-        "/tag/readBlocking",
-        "/tag/browse",
-        "/tag/getConfiguration",
-        "/historian/browse",
-        "/historian/queryRawPoints"
-    );
-    private static final Set<String> WRITE_ROUTES = Set.of(
-        "/tag/configure",
-        "/tag/writeBlocking",
-        "/tag/deleteTags",
-        "/historian/storeDataPoints"
-    );
-
     private final GatewayContext context;
     private final LoggerEx log;
     private final ModuleLicenseGate licenseGate;
@@ -81,10 +68,29 @@ final class FluxyRoutes {
     void mount(RouteGroup routes) {
         RouteAccessControl readControl = new TokenAccessControl(false);
         RouteAccessControl writeControl = new TokenAccessControl(true);
-        READ_ROUTES.forEach(path -> mount(routes, path, readControl));
-        WRITE_ROUTES.forEach(path -> mount(routes, path, writeControl));
-        mountNativeHistoryStream(routes, readControl);
-        mountProjectScan(routes, readControl);
+        for (FluxyRouteManifest.Route route : ROUTE_MANIFEST.routesFor(IGNITION_FAMILY)) {
+            RouteAccessControl accessControl = route.access() == FluxyRouteManifest.Access.WRITE
+                ? writeControl
+                : readControl;
+            switch (route.handler()) {
+                case DISPATCH -> mount(routes, route.operation(), accessControl);
+                case NATIVE_HISTORY_STREAM -> mountNativeHistoryStream(routes, accessControl);
+                case PROJECT_SCAN -> mountProjectScan(routes, accessControl);
+                case CAPABILITIES -> mountCapabilities(routes, accessControl);
+            }
+        }
+    }
+
+    private void mountCapabilities(RouteGroup routes, RouteAccessControl accessControl) {
+        routes.newRoute("/util/getCapabilities")
+            .method(HttpMethod.POST)
+            .acceptedTypes(RouteGroup.TYPE_JSON)
+            .type(RouteGroup.TYPE_JSON)
+            .handler(this::handleCapabilities)
+            .renderer(Object::toString)
+            .restrict(accessControl)
+            .nocache()
+            .mount();
     }
 
     private void mountProjectScan(RouteGroup routes, RouteAccessControl accessControl) {
@@ -112,12 +118,12 @@ final class FluxyRoutes {
             .mount();
     }
 
-    private void mount(RouteGroup routes, String path, RouteAccessControl accessControl) {
-        routes.newRoute(path)
+    private void mount(RouteGroup routes, String operation, RouteAccessControl accessControl) {
+        routes.newRoute("/" + operation)
             .method(HttpMethod.POST)
             .acceptedTypes(RouteGroup.TYPE_JSON)
             .type(RouteGroup.TYPE_JSON)
-            .handler((request, response) -> handle(path.substring(1), request, response))
+            .handler((request, response) -> handle(operation, request, response))
             .renderer(Object::toString)
             .restrict(accessControl)
             .concurrency(16, 64)
@@ -161,9 +167,17 @@ final class FluxyRoutes {
 
             JsonObject envelope = new JsonParser().parse(result.asString()).getAsJsonObject();
             int status = envelope.get("status").getAsInt();
+            JsonElement responseBody = envelope.get("body");
+            if (responseBody.toString().length() > MAX_RESPONSE_CHARS) {
+                return complete(
+                    operation, request, response, trace, body,
+                    HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    errorJson("Fluxy response exceeds 4 MiB limit"), started
+                );
+            }
             return complete(
                 operation, request, response, trace, body, status,
-                envelope.get("body").toString(), started
+                responseBody.toString(), started
             );
         } catch (Exception exception) {
             log.error("Fluxy operation failed: " + operation, exception);
@@ -171,6 +185,55 @@ final class FluxyRoutes {
                 operation, request, response, trace, body,
                 HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                 errorJson("Fluxy module failed to execute the request"), started
+            );
+        }
+    }
+
+    private String handleCapabilities(RequestContext request, HttpServletResponse response) {
+        long started = System.nanoTime();
+        TraceContext trace = traceContext(request);
+        response.setHeader("X-Fluxy-Request-Id", trace.requestId());
+        response.setHeader("X-Fluxy-Run-Id", trace.runId());
+
+        ModuleLicenseGate.Decision licenseDecision = licenseGate.decision();
+        if (!licenseDecision.permitted()) {
+            response.setHeader("Cache-Control", "no-store");
+            return complete(
+                "util/getCapabilities", request, response, trace, "{}", licenseDecision.status(),
+                licenseErrorJson(licenseDecision), started
+            );
+        }
+
+        String body = "{}";
+        try {
+            body = request.readBody();
+            if (body.length() > MAX_BODY_CHARS) {
+                return complete(
+                    "util/getCapabilities", request, response, trace, body,
+                    HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    errorJson("Request body exceeds 1 MiB limit"), started
+                );
+            }
+            if (!body.trim().isEmpty()) {
+                new JsonParser().parse(body).getAsJsonObject();
+            }
+            return complete(
+                "util/getCapabilities", request, response, trace, body,
+                HttpServletResponse.SC_OK,
+                ROUTE_MANIFEST.capabilitiesJson(IGNITION_FAMILY, MODULE_VERSION), started
+            );
+        } catch (JsonParseException | IllegalStateException exception) {
+            return complete(
+                "util/getCapabilities", request, response, trace, body,
+                HttpServletResponse.SC_BAD_REQUEST,
+                errorJson("Request body must be a JSON object"), started
+            );
+        } catch (Exception exception) {
+            log.error("Unable to return Fluxy capabilities", exception);
+            return complete(
+                "util/getCapabilities", request, response, trace, body,
+                HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                errorJson("Unable to return Fluxy capabilities"), started
             );
         }
     }
@@ -237,7 +300,7 @@ final class FluxyRoutes {
             return null;
         } catch (JsonParseException | IllegalStateException exception) {
             return complete(
-                PROJECT_SCAN_OPERATION, request, response, trace, body,
+                NATIVE_HISTORY_OPERATION, request, response, trace, body,
                 HttpServletResponse.SC_BAD_REQUEST,
                 errorJson("Request body must be a JSON object"), started
             );
@@ -411,13 +474,13 @@ final class FluxyRoutes {
         );
         if (status >= 400) {
             log.warn(message);
-        } else if (WRITE_ROUTES.contains("/" + operation)) {
+        } else if (ROUTE_MANIFEST.isWrite(operation)) {
             log.info(message);
         } else {
             log.debug(message);
         }
-        if (WRITE_ROUTES.contains("/" + operation)) {
-            auditMutation(operation, request, trace, summary, status, durationMicros);
+        if (ROUTE_MANIFEST.isWrite(operation)) {
+            auditMutation(operation, request, trace, summary, status, responseBody, durationMicros);
         }
         return responseBody;
     }
@@ -428,6 +491,7 @@ final class FluxyRoutes {
         TraceContext trace,
         RequestSummary summary,
         int status,
+        String responseBody,
         long durationMicros
     ) {
         try {
@@ -447,7 +511,9 @@ final class FluxyRoutes {
             metadata.addProperty("httpStatus", status);
             metadata.addProperty("durationMicros", durationMicros);
             metadata.addProperty("targetCount", summary.count());
-            metadata.addProperty("contractVersion", 1);
+            metadata.addProperty("contractVersion", ROUTE_MANIFEST.contractVersion());
+            boolean succeeded = mutationSucceeded(status, responseBody);
+            metadata.addProperty("operationSucceeded", succeeded);
 
             profile.audit(new AuditRecordBuilder()
                 .setAction("Fluxy." + operation)
@@ -457,12 +523,42 @@ final class FluxyRoutes {
                 .setActorHost(request.getRequest().getRemoteAddr())
                 .setOriginatingContext(ApplicationScope.GATEWAY)
                 .setOriginatingSystem("Fluxy Module " + MODULE_VERSION)
-                .setStatusCode(status < 400 ? DataQuality.GOOD_DATA.getIntValue() : 0)
+                .setStatusCode(succeeded ? DataQuality.GOOD_DATA.getIntValue() : 0)
                 .setTimestamp(new Date())
                 .build());
         } catch (Exception exception) {
             log.error("Unable to write Fluxy audit record for " + operation, exception);
         }
+    }
+
+    static boolean mutationSucceeded(int status, String responseBody) {
+        if (status >= 400) {
+            return false;
+        }
+        try {
+            JsonObject body = new JsonParser().parse(responseBody).getAsJsonObject();
+            if (body.has("qualities") && body.get("qualities").isJsonArray()) {
+                for (JsonElement item : body.getAsJsonArray("qualities")) {
+                    if (!qualityIsGood(item)) {
+                        return false;
+                    }
+                }
+            }
+            if (body.has("quality") && !qualityIsGood(body.get("quality"))) {
+                return false;
+            }
+            return true;
+        } catch (Exception exception) {
+            return false;
+        }
+    }
+
+    private static boolean qualityIsGood(JsonElement item) {
+        JsonElement quality = item;
+        if (item.isJsonObject() && item.getAsJsonObject().has("quality")) {
+            quality = item.getAsJsonObject().get("quality");
+        }
+        return quality.isJsonPrimitive() && quality.getAsString().startsWith("Good");
     }
 
     private static String actor(RequestContext request) {
@@ -505,7 +601,23 @@ final class FluxyRoutes {
                 }
             } else if ("tag/writeBlocking".equals(operation) || "tag/deleteTags".equals(operation)) {
                 addArrayTargets(targets, payload, "tagPaths");
-            } else if ("historian/storeDataPoints".equals(operation)) {
+            } else if ("tag/copy".equals(operation)) {
+                addArrayTargets(targets, payload, "tagPaths");
+                addTarget(targets, stringProperty(payload, "destinationPath"));
+            } else if ("tag/move".equals(operation)) {
+                addTarget(targets, stringProperty(payload, "sourcePath"));
+                addTarget(targets, stringProperty(payload, "destinationPath"));
+            } else if ("tag/rename".equals(operation)) {
+                addTarget(targets, stringProperty(payload, "tagPath"));
+                addTarget(targets, stringProperty(payload, "newName"));
+            } else if ("tag/importTags".equals(operation)) {
+                addTarget(targets, stringProperty(payload, "basePath"));
+            } else if (
+                "historian/storeDataPoints".equals(operation)
+                    || "historian/storeAnnotations".equals(operation)
+                    || "historian/deleteAnnotations".equals(operation)
+                    || "historian/storeMetadata".equals(operation)
+            ) {
                 addArrayTargets(targets, payload, "paths");
             }
         } catch (Exception ignored) {
@@ -573,6 +685,16 @@ final class FluxyRoutes {
         PyObject dispatcher = locals.__finditem__("dispatch");
         if (dispatcher == null || !dispatcher.isCallable()) {
             throw new IllegalStateException("Fluxy dispatcher resource did not define dispatch()");
+        }
+        PyObject operations = locals.__finditem__("_OPERATIONS");
+        Set<String> expected = ROUTE_MANIFEST.dispatchOperations(IGNITION_FAMILY);
+        if (operations == null || operations.__len__() != expected.size()) {
+            throw new IllegalStateException("Fluxy dispatcher operations do not match route manifest");
+        }
+        for (String operation : expected) {
+            if (operations.__finditem__(Py.newUnicode(operation)) == null) {
+                throw new IllegalStateException("Fluxy dispatcher is missing " + operation);
+            }
         }
         return dispatcher;
     }

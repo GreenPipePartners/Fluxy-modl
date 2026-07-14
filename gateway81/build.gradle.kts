@@ -22,6 +22,7 @@ java {
 sourceSets {
     main {
         java.srcDir(rootProject.layout.projectDirectory.dir("gateway-common/src/main/java"))
+        resources.srcDir(rootProject.layout.projectDirectory.dir("gateway-common/src/main/resources"))
     }
     test {
         java.srcDir(rootProject.layout.projectDirectory.dir("gateway-common/src/test/java"))
@@ -104,4 +105,6 @@ tasks.withType<AbstractArchiveTask>().configureEach {
 tasks.test {
     useJUnitPlatform()
     systemProperty("fluxy.test.expectedLicenseMode", licenseMode)
+    systemProperty("fluxy.test.expectedModuleVersion", moduleVersion)
+    systemProperty("fluxy.test.targetFamily", "8.1")
 }

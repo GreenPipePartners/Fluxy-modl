@@ -34,6 +34,96 @@ def test_module_project_request_scan():
         fx.close()
 
 
+def test_module_capabilities_and_gateway_inventory():
+    fx = Fluxy(
+        os.getenv("FLUXY_BASE_URL", "http://localhost:8088/data"),
+        api_token=os.environ["FLUXY_API_TOKEN"],
+    )
+    try:
+        capabilities = fx.util.get_capabilities()
+        assert capabilities.transport == "ignition-module"
+        assert capabilities.contract_version == 2
+        assert capabilities.supports("tag/copy")
+        assert capabilities.supports("historian/queryAggregatedPoints")
+        assert capabilities.supports("project/getProjectNames")
+        assert len([operation for operation in capabilities.operations if operation.available]) >= 26
+
+        modules = fx.util.get_modules()
+        assert modules
+        assert any("Name" in module or "name" in module for module in modules)
+        assert fx.project.get_project_names()
+    finally:
+        fx.close()
+
+
+def test_module_expanded_tag_lifecycle():
+    folder = "FluxyExpandedTags_%s" % uuid4().hex
+    root = "[default]%s" % folder
+    source_folder = "%s/Source" % root
+    destination_folder = "%s/Destination" % root
+    move_folder = "%s/MoveDestination" % root
+    source_tag = "%s/CopiedString" % source_folder
+    copied_tag = "%s/CopiedString" % destination_folder
+    move_source = "%s/MoveString" % source_folder
+    moved_tag = "%s/MoveString" % move_folder
+    rename_source = "%s/RenameOriginal" % source_folder
+    renamed_tag = "%s/Renamed" % source_folder
+    fx = Fluxy(
+        os.getenv("FLUXY_BASE_URL", "http://localhost:8088/data"),
+        api_token=os.environ["FLUXY_API_TOKEN"],
+        tag_provider="default",
+    )
+
+    try:
+        fx.tag.configure(
+            [
+                {
+                    "name": folder,
+                    "tagType": "Folder",
+                    "tags": [
+                        {
+                            "name": "Source",
+                            "tagType": "Folder",
+                            "tags": [
+                                _memory_string("CopiedString", "copy-source"),
+                                _memory_string("MoveString", "move-source"),
+                                _memory_string("RenameOriginal", "rename-source"),
+                            ],
+                        },
+                        {"name": "Destination", "tagType": "Folder"},
+                        {"name": "MoveDestination", "tagType": "Folder"},
+                    ],
+                }
+            ],
+            base_path="[default]",
+        )
+
+        assert fx.tag.copy(source_tag, destination_folder).quality.startswith("Good")
+        assert fx.tag.read_blocking(copied_tag).value == "copy-source"
+        assert fx.tag.move(move_source, move_folder).quality.startswith("Good")
+        assert fx.tag.read_blocking(moved_tag).value == "move-source"
+        assert fx.tag.rename(rename_source, "Renamed").quality.startswith("Good")
+        assert fx.tag.read_blocking(renamed_tag).value == "rename-source"
+
+        query = {
+            "condition": {"path": folder + "/*", "tagType": "AtomicTag"},
+            "returnProperties": ["path", "tagType", "valueSource"],
+        }
+        results = fx.tag.query("default", query=query, limit=25)
+        assert any("CopiedString" in str(result) for result in results)
+
+        exported = fx.tag.export_tags(source_folder)
+        exported.tags["name"] = "Imported"
+        imported = fx.tag.import_tags(exported.tags, base_path=root)
+        assert imported and all(result.quality.startswith("Good") for result in imported)
+        assert fx.tag.read_blocking("%s/Imported/CopiedString" % root).value == "copy-source"
+    finally:
+        try:
+            fx.tag.delete_tags(root)
+        finally:
+            fx.close()
+
+
 def test_module_memory_tag_and_history_closed_loop():
     base_url = os.getenv("FLUXY_BASE_URL", "http://localhost:8088/data")
     api_token = os.environ["FLUXY_API_TOKEN"]
@@ -100,6 +190,103 @@ def test_module_memory_tag_and_history_closed_loop():
             fx.tag.delete_tags(root)
         finally:
             fx.close()
+
+
+def test_module_advanced_historian_contract():
+    base_url = os.getenv("FLUXY_BASE_URL", "http://localhost:8088/data")
+    api_token = os.environ["FLUXY_API_TOKEN"]
+    history_path = (
+        "histprov:Core Historian:/sys:gateway:/prov:default:/tag:FluxyModuleExpanded/%s"
+        % uuid4().hex
+    )
+    marker = "fluxy-module-annotation-%s" % uuid4().hex
+    metadata_marker = "fluxy-module-metadata-%s" % uuid4().hex
+    timestamp = int(time.time() * 1000) - 60_000
+    fx = Fluxy(base_url, api_token=api_token)
+
+    try:
+        qualities = fx.historian.store_data_points(
+            [history_path, history_path, history_path],
+            [10.0, 20.0, 30.0],
+            timestamps=[timestamp, timestamp + 1_000, timestamp + 2_000],
+            qualities=[192, 192, 192],
+        )
+        assert all(quality.startswith("Good") for quality in qualities)
+
+        aggregated = fx.historian.query_aggregated_points(
+            [history_path],
+            timestamp - 1_000,
+            timestamp + 3_000,
+            aggregates=["Maximum"],
+            column_names=["Maximum"],
+        )
+        assert any(
+            30.0 == float(value)
+            for row in aggregated
+            for value in row.values()
+            if isinstance(value, (int, float))
+        )
+
+        annotation_qualities = fx.historian.store_annotations(
+            [history_path],
+            [timestamp],
+            end_times=[timestamp + 2_000],
+            types=["note"],
+            data=[marker],
+        )
+        assert all(quality.startswith("Good") for quality in annotation_qualities)
+        annotation = _eventually_query_annotation(
+            fx, history_path, timestamp - 1_000, timestamp + 3_000, marker
+        )
+        deleted = fx.historian.delete_annotations([history_path], [annotation.storage_id])
+        assert all(quality.startswith("Good") for quality in deleted)
+
+        if fx.util.get_capabilities().supports("historian/storeMetadata"):
+            metadata_qualities = fx.historian.store_metadata(
+                [history_path],
+                [timestamp],
+                {"documentation": metadata_marker},
+            )
+            assert all(quality.startswith("Good") for quality in metadata_qualities)
+            metadata = _eventually_query_metadata(
+                fx, history_path, timestamp - 1_000, timestamp + 3_000, metadata_marker
+            )
+            assert metadata.properties is not None
+            assert metadata.properties.get("documentation") == metadata_marker
+    finally:
+        fx.close()
+
+
+def _memory_string(name: str, value: str) -> dict[str, object]:
+    return {
+        "name": name,
+        "tagType": "AtomicTag",
+        "valueSource": "memory",
+        "dataType": "String",
+        "value": value,
+    }
+
+
+def _eventually_query_annotation(fx, path, start_time, end_time, marker):
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        annotations = fx.historian.query_annotations([path], start_time, end_date=end_time)
+        for annotation in annotations:
+            if annotation.data == marker:
+                return annotation
+        time.sleep(1)
+    pytest.fail("Historian did not return annotation %s" % marker)
+
+
+def _eventually_query_metadata(fx, path, start_time, end_time, marker):
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        metadata_rows = fx.historian.query_metadata([path], start_date=start_time, end_date=end_time)
+        for metadata in metadata_rows:
+            if metadata.properties and metadata.properties.get("documentation") == marker:
+                return metadata
+        time.sleep(1)
+    pytest.fail("Historian did not return metadata %s" % marker)
 
 
 def _eventually_find_history_path(fx: Fluxy, folder: str) -> str:

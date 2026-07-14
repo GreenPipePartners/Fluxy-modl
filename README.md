@@ -59,7 +59,7 @@ Public release candidates require a clean, pushed, immutable tag and embed the e
   -PlicenseMode=free \
   -PpublicRelease=true \
   -PsourceCommit=<40-character-commit> \
-  -PsourceTag=v0.1.6.20260714 \
+  -PsourceTag=v0.2.0.20260714 \
   clean test packageReleaseCandidate
 ```
 
@@ -85,6 +85,7 @@ fx = Fluxy(
 )
 
 value = fx.tag.read_blocking("[default]Demo/Value")
+capabilities = fx.util.get_capabilities()
 fx.project.request_scan()
 ```
 
@@ -95,7 +96,7 @@ Ignition 8.1 uses `https://gateway.example/main/data`. See [docs/ignition-module
 - Project resource scans through `ProjectManager.requestScan`
 - Bounded history streaming through `TagHistoryManager.queryHistory`
 
-Other currently exposed operations include version, audit-log query, tag configure/read/write/browse/delete, historian browse, and raw historian store/query.
+The versioned route manifest exposes 28 operations on Ignition 8.3 and 26 on Ignition 8.1. In addition to the native operations above, the module supports capability and module discovery, project listing, tag configure/read/write/browse/copy/move/rename/import/export/query/delete, audit-log queries, and raw/aggregated historian data plus annotations. Historian metadata requires Ignition 8.3.
 
 ## Licensing And Provenance
 

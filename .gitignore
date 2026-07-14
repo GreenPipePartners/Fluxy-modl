@@ -5,6 +5,7 @@
 **/build/
 release/
 __pycache__/
+.jython_cache/
 *.pyc
 *.jks
 *.p12

@@ -16,7 +16,7 @@ Python 3 Fluxy client
   -> Gateway SDK / system.tag / system.historian / system.util
 ```
 
-The dispatcher does not accept Python source or arbitrary function names. Adding an operation requires a module code change and an explicit read or write route assignment. Native SDK operations are preferred where Ignition exposes a stable cross-version API.
+The dispatcher does not accept Python source or arbitrary function names. Adding an operation requires a module code change and an explicit read or write assignment in the shared `fluxy-routes.json` manifest. Module startup fails if the manifest and version-specific dispatcher differ. Native SDK operations are preferred where Ignition exposes a stable cross-version API.
 
 ## Build
 
@@ -29,8 +29,8 @@ JAVA_HOME=/path/to/jdk17 ./gradlew -PignitionTarget=8.3 clean test packageDevelo
 
 The development artifacts are:
 
-- `release/Fluxy-Ignition81-Free-0.1.6.20260714-dev.unsigned.modl`
-- `release/Fluxy-Ignition83-Free-0.1.6.20260714-dev.unsigned.modl`
+- `release/Fluxy-Ignition81-Free-0.2.0.20260714-dev.unsigned.modl`
+- `release/Fluxy-Ignition83-Free-0.2.0.20260714-dev.unsigned.modl`
 
 Each development artifact is unsigned and explicitly marked not for distribution. Install only the artifact matching the Gateway major version. Both identify as `Fluxy Free`, set `<freeModule>true</freeModule>`, and require no module entitlement. Free changes licensing, not API security; every route remains authenticated.
 
@@ -129,9 +129,16 @@ Audited module operations currently include:
 - `tag/configure`
 - `tag/writeBlocking`
 - `tag/deleteTags`
+- `tag/copy`
+- `tag/move`
+- `tag/rename`
+- `tag/importTags`
 - `historian/storeDataPoints`
+- `historian/storeAnnotations`
+- `historian/deleteAnnotations`
+- `historian/storeMetadata` on Ignition 8.3
 
-Audit records contain actor, host, operation, targets, request ID, run ID, script, HTTP status, duration, target count, contract version, timestamp, and result quality. Tag values, historian values, API keys, and complete request bodies are never logged or audited.
+Audit records contain actor, host, operation, targets, request ID, run ID, script, HTTP status, duration, target count, contract version, timestamp, and result quality. Imported tag definitions, annotation data, metadata values, tag values, historian values, API keys, and complete request bodies are never logged or audited.
 
 Query the resulting records through Fluxy:
 
@@ -158,10 +165,17 @@ The Python API and route names remain future-facing on both versions. The 8.1 ar
 | `historian.browse` | `system.historian.browse` | `system.tag.browseHistoricalTags` |
 | `historian.store_data_points` | `system.historian.storeDataPoints` | `system.tag.storeTagHistory` |
 | `historian.query_raw_points` | `system.historian.queryRawPoints` | `system.tag.queryTagHistory` |
+| `historian.query_aggregated_points` | `system.historian.queryAggregatedPoints` | `system.tag.queryTagCalculations` / `queryTagHistory` |
+| Historian annotations | `system.historian.*Annotations` | `system.tag.*Annotations` |
+| Historian metadata | `system.historian.storeMetadata` / `queryMetadata` | Unavailable and reported by capabilities |
 | `historian.stream_raw_points` | Java `TagHistoryManager.queryHistory` | Java `TagHistoryManager.queryHistory` |
 | `project.request_scan` | Java `ProjectManager.requestScan` | Java `ProjectManager.requestScan` |
 
-The native module does not currently expose `system.db` query/cache or Vision binding routes. When those routes are added, modern Python names such as `exec_query`, `exec_scalar`, `exec_update`, and `clear_cache` should remain public while each artifact selects its version-specific Ignition function internally.
+For `historian.query_aggregated_points`, Ignition 8.1 maps `CALCULATION` format to `system.tag.queryTagCalculations` and `WIDE`/`TALL` to `system.tag.queryTagHistory`. Its legacy API supports Fluxy `DERIVED` and `NONE` fill modes when one consistent mode is used for every path. Other fill modes and `excludeObservations=true` return HTTP 400 instead of silently changing query semantics.
+
+Call `fx.util.get_capabilities()` to inspect the installed module contract. The response includes every declared operation, its read/write classification, and whether it is available on the current Ignition family. The native module does not expose arbitrary SQL, datasource administration, user administration, arbitrary code execution, or Vision/Perspective session APIs.
+
+Ordinary JSON requests are limited to 1 MiB and responses to 4 MiB. Collection requests accept at most 1,000 items, tag queries accept at most 10,000 results per page, and aggregated historian requests accept at most 100,000 rows. Use the bounded native history stream for larger raw-history workloads.
 
 ## Project Scans
 
@@ -210,7 +224,7 @@ The API surface was compile-tested against Ignition 8.1.50, 8.1.51, 8.3.4, and 8
 
 ## Live Verification
 
-The opt-in test configures a history-enabled memory tag, writes and reads values, browses tags and historian paths, queries history, and deletes the tag:
+The opt-in test validates capabilities and Gateway inventory, exercises tag copy/move/rename/import/export/query, configures a history-enabled memory tag, queries raw and aggregated history, runs annotation and metadata lifecycles, verifies audit records, and cleans up disposable tags:
 
 ```bash
 FLUXY_MODULE_INTEGRATION=1 \
@@ -221,21 +235,25 @@ uv run pytest tests/test_integration_module.py
 
 ## Current Surface
 
-- `system.util.getVersion`
-- `system.util.queryAuditLog`
-- `system.tag.configure`
-- `system.tag.readBlocking`
-- `system.tag.writeBlocking`
-- `system.tag.browse`
-- `system.tag.getConfiguration`
-- `system.tag.deleteTags`
-- `system.historian.browse`
-- `system.historian.storeDataPoints`
-- `system.historian.queryRawPoints`
-- Native `TagHistoryManager.queryHistory` NDJSON stream
+Utility and project:
+
+- `util/getVersion`, `util/getCapabilities`, `util/getModules`, `util/queryAuditLog`
+- `project/requestScan`, `project/getProjectNames`
+
+Tags:
+
+- Read: `tag/readBlocking`, `tag/browse`, `tag/getConfiguration`, `tag/exportTags`, `tag/queryTags`
+- Write: `tag/configure`, `tag/writeBlocking`, `tag/deleteTags`, `tag/copy`, `tag/move`, `tag/rename`, `tag/importTags`
+
+Historian:
+
+- Read: `historian/browse`, `historian/queryRawPoints`, `historian/queryRawPointsStream`, `historian/queryAggregatedPoints`, `historian/queryAnnotations`, `historian/queryMetadata`
+- Write: `historian/storeDataPoints`, `historian/storeAnnotations`, `historian/deleteAnnotations`, `historian/storeMetadata`
+
+Historian metadata routes are available only on Ignition 8.3, producing 28 available operations on 8.3 and 26 on 8.1. Capability discovery still lists the unavailable 8.1 metadata operations with `available: false`.
 
 The WebDev transport remains available for existing deployments. The native artifacts default to 8.1.50 and 8.3.4 respectively because the major versions have incompatible servlet and route-authorization APIs. CI additionally compiles and tests against 8.1.51 and 8.3.6.
 
-Current module release: `0.1.6 (b20260714)`, module ID `partners.greenpipe.fluxy`, vendor `Green Pipe Partners, LLC`.
+Current module release: `0.2.0 (b20260714)`, module ID `partners.greenpipe.fluxy`, vendor `Green Pipe Partners, LLC`.
 
 The module source is MPL-2.0. See `../LICENSE`, `../NOTICE`, `../PROVENANCE.md`, and `release.md` for source, ownership, and official-release requirements.

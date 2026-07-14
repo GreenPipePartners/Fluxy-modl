@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": 2,
+  "routes": [
+    {"operation": "util/getVersion", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "util/getCapabilities", "access": "read", "handler": "capabilities", "versions": ["8.1", "8.3"]},
+    {"operation": "util/getModules", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "util/queryAuditLog", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+
+    {"operation": "tag/readBlocking", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/browse", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/getConfiguration", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/exportTags", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/queryTags", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/configure", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/writeBlocking", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/deleteTags", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/copy", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/move", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/rename", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "tag/importTags", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+
+    {"operation": "historian/browse", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/queryRawPoints", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/queryRawPointsStream", "access": "read", "handler": "native-history-stream", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/queryAggregatedPoints", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/queryAnnotations", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/queryMetadata", "access": "read", "handler": "dispatch", "versions": ["8.3"]},
+    {"operation": "historian/storeDataPoints", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/storeAnnotations", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/deleteAnnotations", "access": "write", "handler": "dispatch", "versions": ["8.1", "8.3"]},
+    {"operation": "historian/storeMetadata", "access": "write", "handler": "dispatch", "versions": ["8.3"]},
+
+    {"operation": "project/requestScan", "access": "read", "handler": "project-scan", "versions": ["8.1", "8.3"]},
+    {"operation": "project/getProjectNames", "access": "read", "handler": "dispatch", "versions": ["8.1", "8.3"]}
+  ]
+}

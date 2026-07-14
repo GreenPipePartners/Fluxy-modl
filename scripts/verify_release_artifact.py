@@ -31,6 +31,58 @@ FORBIDDEN_JAR_PREFIXES = (
     "org/junit/",
     "org/python/",
 )
+EXPECTED_OPERATIONS = {
+    "util/getVersion",
+    "util/getCapabilities",
+    "util/getModules",
+    "util/queryAuditLog",
+    "tag/readBlocking",
+    "tag/browse",
+    "tag/getConfiguration",
+    "tag/exportTags",
+    "tag/queryTags",
+    "tag/configure",
+    "tag/writeBlocking",
+    "tag/deleteTags",
+    "tag/copy",
+    "tag/move",
+    "tag/rename",
+    "tag/importTags",
+    "historian/browse",
+    "historian/queryRawPoints",
+    "historian/queryRawPointsStream",
+    "historian/queryAggregatedPoints",
+    "historian/queryAnnotations",
+    "historian/queryMetadata",
+    "historian/storeDataPoints",
+    "historian/storeAnnotations",
+    "historian/deleteAnnotations",
+    "historian/storeMetadata",
+    "project/requestScan",
+    "project/getProjectNames",
+}
+EXPECTED_WRITE_OPERATIONS = {
+    "tag/configure",
+    "tag/writeBlocking",
+    "tag/deleteTags",
+    "tag/copy",
+    "tag/move",
+    "tag/rename",
+    "tag/importTags",
+    "historian/storeDataPoints",
+    "historian/storeAnnotations",
+    "historian/deleteAnnotations",
+    "historian/storeMetadata",
+}
+EXPECTED_NATIVE_HANDLERS = {
+    "util/getCapabilities": "capabilities",
+    "historian/queryRawPointsStream": "native-history-stream",
+    "project/requestScan": "project-scan",
+}
+IGNITION_83_ONLY_OPERATIONS = {
+    "historian/queryMetadata",
+    "historian/storeMetadata",
+}
 
 
 def fail(message: str) -> None:
@@ -122,12 +174,49 @@ def verify(args: argparse.Namespace) -> str:
                 fail(f"module JAR bundles host/test classes: {forbidden[:5]}")
             required_classes = {
                 "partners/greenpipe/fluxy/gateway/FluxyGatewayHook.class",
+                "partners/greenpipe/fluxy/gateway/FluxyRouteManifest.class",
                 "partners/greenpipe/fluxy/gateway/ProjectScanOperations.class",
                 "partners/greenpipe/fluxy/gateway/NativeHistoryStreamer.class",
             }
             missing_classes = required_classes - set(jar_members)
             if missing_classes:
                 fail(f"module JAR is missing expected classes: {sorted(missing_classes)}")
+            if "fluxy-routes.json" not in jar_members:
+                fail("module JAR is missing fluxy-routes.json")
+            route_manifest = json.loads(module_jar.read("fluxy-routes.json"))
+            if route_manifest.get("schemaVersion") != 1:
+                fail("unexpected Fluxy route schema version")
+            if route_manifest.get("contractVersion") != 2:
+                fail("unexpected Fluxy contract version")
+            routes = route_manifest.get("routes")
+            if not isinstance(routes, list):
+                fail("Fluxy route manifest is missing routes")
+            operations = [route.get("operation") for route in routes]
+            if len(operations) != len(set(operations)):
+                fail("Fluxy route manifest contains duplicate operations")
+            if set(operations) != EXPECTED_OPERATIONS:
+                fail("Fluxy route manifest does not match the expected public contract")
+            for route in routes:
+                operation = route["operation"]
+                expected_access = "write" if operation in EXPECTED_WRITE_OPERATIONS else "read"
+                if route.get("access") != expected_access:
+                    fail(f"unexpected access for {operation}")
+                expected_handler = EXPECTED_NATIVE_HANDLERS.get(operation, "dispatch")
+                if route.get("handler") != expected_handler:
+                    fail(f"unexpected handler for {operation}")
+                expected_versions = (
+                    {"8.3"} if operation in IGNITION_83_ONLY_OPERATIONS else {"8.1", "8.3"}
+                )
+                if set(route.get("versions", [])) != expected_versions:
+                    fail(f"unexpected versions for {operation}")
+            target_family = "8.1" if args.ignition_version.startswith("8.1") else "8.3"
+            available = [route for route in routes if target_family in route.get("versions", [])]
+            expected_available = 26 if target_family == "8.1" else 28
+            if len(available) != expected_available:
+                fail(
+                    f"Fluxy route manifest exposes {len(available)} routes for {target_family}; "
+                    f"expected {expected_available}"
+                )
 
     return digest
 
