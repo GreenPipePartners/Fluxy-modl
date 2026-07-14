@@ -29,8 +29,8 @@ JAVA_HOME=/path/to/jdk17 ./gradlew -PignitionTarget=8.3 clean test packageDevelo
 
 The development artifacts are:
 
-- `release/Fluxy-Ignition81-Free-0.1.3.20260712-dev.unsigned.modl`
-- `release/Fluxy-Ignition83-Free-0.1.3.20260712-dev.unsigned.modl`
+- `release/Fluxy-Ignition81-Free-0.1.3.20260714-dev.unsigned.modl`
+- `release/Fluxy-Ignition83-Free-0.1.3.20260714-dev.unsigned.modl`
 
 Each development artifact is unsigned and explicitly marked not for distribution. Install only the artifact matching the Gateway major version. Both identify as `Fluxy Free`, set `<freeModule>true</freeModule>`, and require no module entitlement. Free changes licensing, not API security; every route remains authenticated.
 
@@ -70,7 +70,7 @@ fx = Fluxy(
     "https://gateway.example/data",
     api_token="fluxy-service:<one-time-secret>",
     tag_provider="default",
-    run_id="commissioning-20260712",
+    run_id="commissioning-20260714",
     script_name="build_tags.py",
 )
 ```
@@ -234,6 +234,6 @@ uv run pytest tests/test_integration_module.py
 
 The WebDev transport remains available for existing deployments. The native artifacts default to 8.1.50 and 8.3.4 respectively because the major versions have incompatible servlet and route-authorization APIs. CI additionally compiles and tests against 8.1.51 and 8.3.6.
 
-Current module release: `0.1.3 (b20260712)`, vendor `Green Pipe Partners, LLC`.
+Current module release: `0.1.3 (b20260714)`, vendor `Green Pipe Partners, LLC`.
 
 The module source is MPL-2.0. See `../LICENSE`, `../NOTICE`, `../PROVENANCE.md`, and `release.md` for source, ownership, and official-release requirements.

@@ -9,7 +9,7 @@ plugins {
 }
 
 val releaseVersion = "0.1.3"
-val buildNumber = "20260712"
+val buildNumber = "20260714"
 val moduleVersionValue = "$releaseVersion.$buildNumber"
 val repositoryUrl = "https://github.com/GreenPipePartners/Fluxy-modl"
 val publicRelease = providers.gradleProperty("publicRelease").map(String::toBoolean).orElse(false)

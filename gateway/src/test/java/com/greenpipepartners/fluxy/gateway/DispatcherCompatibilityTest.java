@@ -22,6 +22,8 @@ class DispatcherCompatibilityTest {
 
             assertTrue(source.contains("system.date.format"));
             assertTrue(source.contains("system.historian.browse"));
+            assertTrue(source.contains("continuationPoint=continuation"));
+            assertTrue(source.contains("Historian browse failed: %s"));
             assertTrue(source.contains("system.historian.storeDataPoints"));
             assertTrue(source.contains("system.historian.queryRawPoints"));
             assertFalse(source.contains("system.db.dateFormat"));

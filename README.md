@@ -57,7 +57,7 @@ Public release candidates require a clean, pushed, immutable tag and embed the e
   -PlicenseMode=free \
   -PpublicRelease=true \
   -PsourceCommit=<40-character-commit> \
-  -PsourceTag=v0.1.3.20260712 \
+  -PsourceTag=v0.1.3.20260714 \
   clean test packageReleaseCandidate
 ```
 

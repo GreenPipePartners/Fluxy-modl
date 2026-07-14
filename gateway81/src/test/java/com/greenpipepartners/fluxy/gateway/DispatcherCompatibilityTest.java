@@ -22,6 +22,7 @@ class DispatcherCompatibilityTest {
 
             assertTrue(source.contains("system.db.dateFormat"));
             assertTrue(source.contains("system.tag.browseHistoricalTags"));
+            assertTrue(source.contains("Historian browse failed: %s"));
             assertTrue(source.contains("system.tag.storeTagHistory"));
             assertTrue(source.contains("system.tag.queryTagHistory"));
             assertFalse(source.contains("system.date.format"));

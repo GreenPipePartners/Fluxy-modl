@@ -256,13 +256,20 @@ def _historian_browse(payload):
     if not isinstance(path, basestring):
         raise BadRequest("Request must include path string")
     continuation = payload.get("continuationPoint")
-    results = system.historian.browse(path, continuation) if continuation else system.historian.browse(path)
+    if continuation:
+        results = system.historian.browse(path, continuationPoint=continuation)
+    else:
+        results = system.historian.browse(path)
+    quality = results.getResultQuality()
+    result_rows = results.getResults()
+    if result_rows is None or quality is None or not quality.isGood():
+        raise RuntimeError("Historian browse failed: %s" % quality)
     continuation_point = results.getContinuationPoint()
     return {
         "ok": True,
-        "results": [_historian_browse_result_to_wire(result) for result in results.getResults()],
+        "results": [_historian_browse_result_to_wire(result) for result in result_rows],
         "continuationPoint": str(continuation_point) if continuation_point is not None else None,
-        "quality": str(results.getResultQuality()),
+        "quality": str(quality),
     }
 
 
