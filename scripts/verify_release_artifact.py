@@ -121,9 +121,9 @@ def verify(args: argparse.Namespace) -> str:
             if forbidden:
                 fail(f"module JAR bundles host/test classes: {forbidden[:5]}")
             required_classes = {
-                "com/greenpipepartners/fluxy/gateway/FluxyGatewayHook.class",
-                "com/greenpipepartners/fluxy/gateway/ProjectScanOperations.class",
-                "com/greenpipepartners/fluxy/gateway/NativeHistoryStreamer.class",
+                "partners/greenpipe/fluxy/gateway/FluxyGatewayHook.class",
+                "partners/greenpipe/fluxy/gateway/ProjectScanOperations.class",
+                "partners/greenpipe/fluxy/gateway/NativeHistoryStreamer.class",
             }
             missing_classes = required_classes - set(jar_members)
             if missing_classes:

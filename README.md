@@ -16,6 +16,8 @@ This repository is the corresponding source for published Fluxy `.modl` artifact
 
 Separate binaries are required because Ignition 8.3 changed servlet and data-route APIs. Both artifacts use IA-prefix-compliant module ID `partners.greenpipe.fluxy`, expose the same HTTP contract, set `freeModule=true`, and do not require an Ignition module entitlement.
 
+The Java implementation uses package namespace `partners.greenpipe.fluxy.gateway`, matching the stable module ID.
+
 ## Security Model
 
 - Every route is authenticated.
@@ -57,7 +59,7 @@ Public release candidates require a clean, pushed, immutable tag and embed the e
   -PlicenseMode=free \
   -PpublicRelease=true \
   -PsourceCommit=<40-character-commit> \
-  -PsourceTag=v0.1.5.20260714 \
+  -PsourceTag=v0.1.6.20260714 \
   clean test packageReleaseCandidate
 ```
 

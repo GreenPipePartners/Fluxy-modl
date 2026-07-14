@@ -24,10 +24,10 @@ IA assigned Green Pipe Partners the module prefix `partners.greenpipe`; every re
 
 ## Source Identity
 
-The release tag for version `0.1.5.20260714` is:
+The release tag for version `0.1.6.20260714` is:
 
 ```text
-v0.1.5.20260714
+v0.1.6.20260714
 ```
 
 The artifact embeds immutable links to:
@@ -58,7 +58,7 @@ After review, commit and push `main`, then create and push the exact version tag
 
 ```bash
 COMMIT=$(git rev-parse HEAD)
-TAG=v0.1.5.20260714
+TAG=v0.1.6.20260714
 
 ./gradlew \
   -PignitionTarget=8.1 \
@@ -83,13 +83,13 @@ The task refuses dirty, untagged, unpushed, incorrectly licensed, or source-mism
 
 ```bash
 python3 scripts/verify_release_artifact.py \
-  release/Fluxy-Ignition81-Free-0.1.5.20260714.unsigned.modl \
+  release/Fluxy-Ignition81-Free-0.1.6.20260714.unsigned.modl \
   --ignition-version 8.1.50 \
   --source-commit "$COMMIT" \
   --source-tag "$TAG"
 
 python3 scripts/verify_release_artifact.py \
-  release/Fluxy-Ignition83-Free-0.1.5.20260714.unsigned.modl \
+  release/Fluxy-Ignition83-Free-0.1.6.20260714.unsigned.modl \
   --ignition-version 8.3.4 \
   --source-commit "$COMMIT" \
   --source-tag "$TAG"
@@ -106,8 +106,8 @@ java -jar /secure/module-signer.jar \
   -alias=<signing-alias> \
   -alias-pwd=<provided-securely> \
   -chain=/secure/fluxy-signing-chain.p7b \
-  -module-in=release/Fluxy-Ignition83-Free-0.1.5.20260714.unsigned.modl \
-  -module-out=release/Fluxy-Ignition83-Free-0.1.5.20260714.modl
+  -module-in=release/Fluxy-Ignition83-Free-0.1.6.20260714.unsigned.modl \
+  -module-out=release/Fluxy-Ignition83-Free-0.1.6.20260714.modl
 ```
 
 Repeat for 8.1. Do not put literal passwords in shell history, CI logs, Gradle properties, or the repository. A self-signed certificate is supported for an independently hosted free beta; a CA-issued code-signing certificate provides stronger assurance for public users.
